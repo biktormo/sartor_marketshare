@@ -31,7 +31,7 @@ export default function App() {
             onClick={() => setActiveTab('import')}
             className={`text-sm font-medium ${activeTab === 'import' ? 'text-[#367C2B] border-b-2 border-[#367C2B]' : 'text-slate-500'}`}
           >
-            Data Import
+            Importar Datos
           </button>
         </nav>
 

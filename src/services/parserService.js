@@ -3,62 +3,67 @@ import { db, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-// Versión CDN más estable para el worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js`;
+// Usamos una versión fija y verificada del worker
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
 
 export const processReport = async (file, onProgress) => {
-  console.log("processReport iniciado para:", file.name);
-  
-  // 1. Subida a Storage
   const storageRef = ref(storage, `reports/${Date.now()}_${file.name}`);
   const uploadTask = uploadBytesResumable(storageRef, file);
   
   return new Promise((resolve, reject) => {
     uploadTask.on('state_changed', 
-      (snapshot) => {
-        const p = Math.round((snapshot.bytesTransferred / snapshot.totalBytes) * 50);
-        onProgress(p);
-      },
-      (error) => { console.error("Error subiendo:", error); reject(error); },
+      (snap) => onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 50)),
+      (err) => reject(err),
       async () => {
         try {
           const fileUrl = await getDownloadURL(storageRef);
-          console.log("Archivo en Storage:", fileUrl);
           onProgress(60);
 
-          // 2. Lectura del PDF
           const arrayBuffer = await file.arrayBuffer();
-          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
-          const pdf = await loadingTask.promise;
-          console.log(`PDF cargado: ${pdf.numPages} páginas`);
-
-          let text = "";
+          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          
+          let fullText = "";
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            text += content.items.map(item => item.str).join(" ");
+            fullText += content.items.map(item => item.str).join(" ");
           }
           
-          onProgress(85);
-          console.log("Texto extraído (primeros 100 caracteres):", text.substring(0, 100));
+          onProgress(90);
 
-          // 3. Guardar en Firestore
-          const reportData = {
-            fileName: file.name,
-            fileUrl,
-            type: text.includes("Tractor") ? "tractors" : (text.includes("Combine") ? "combines" : "other"),
-            timestamp: serverTimestamp(),
-            rawText: text.substring(0, 500) // Guardamos un resumen
+          // Lógica de detección y extracción básica
+          const esTractor = fullText.includes("Tractor");
+          const esCosechadora = fullText.includes("Combine");
+
+          // Aquí prepararemos el objeto para Firestore
+          const datosProcesados = {
+            nombreArchivo: file.name,
+            archivoUrl: fileUrl,
+            tipo: esTractor ? "Tractores" : (esCosechadora ? "Cosechadoras" : "Otros"),
+            fechaProcesado: serverTimestamp(),
+            // Agregamos datos iniciales de Market Share total (extraídos por posición o regex)
+            marketShareGeneral: extraerShareGeneral(fullText),
+            segmentosHP: {
+              menor_100: 0, // Aquí sumaremos los datos de <50 a 100 HP
+              entre_100_180: 0, // Aquí sumaremos de 100 a 180 HP
+              mayor_180: 0 // Aquí sumaremos de 180 en adelante
+            }
           };
 
-          const docRef = await addDoc(collection(db, "reports"), reportData);
+          const docRef = await addDoc(collection(db, "reports"), datosProcesados);
           onProgress(100);
-          resolve({ id: docRef.id, ...reportData });
+          resolve({ id: docRef.id, ...datosProcesados });
         } catch (err) {
-          console.error("Error en procesamiento interno:", err);
+          console.error("Error detallado:", err);
           reject(err);
         }
       }
     );
   });
 };
+
+// Función auxiliar para intentar pescar el número de Market Share
+function extraerShareGeneral(texto) {
+  const match = texto.match(/MarketShare\s+(\d+\.?\d*)%/i);
+  return match ? parseFloat(match[1]) : 0;
+}
