@@ -7,9 +7,9 @@ export default {
     theme: {
       extend: {
         colors: {
-          primary: "#367C2B", // Verde John Deere
-          secondary: "#FFDE00", // Amarillo John Deere
-          accent: "#30ec13", // Verde brillante de los bocetos
+          primary: "#367C2B",
+          secondary: "#FFDE00",
+          accent: "#30ec13",
         },
       },
     },
