@@ -1,6 +1,8 @@
 import React, { useState } from 'react';
 import { LayoutDashboard, FileUp, Bell, Settings, BarChart3 } from 'lucide-react';
 import DataImport from './pages/DataImport';
+import Dashboard from './pages/Dashboard';
+
 // Importaremos otros componentes luego
 
 export default function App() {
@@ -45,6 +47,7 @@ export default function App() {
 
       <main className="max-w-[1440px] mx-auto p-10">
         {activeTab === 'import' && <DataImport />}
+        {activeTab === 'dashboard' && <Dashboard />}
         {activeTab === 'dashboard' && (
           <div className="text-center py-20">
             <h2 className="text-2xl font-bold text-slate-400">Selecciona un archivo en Import para ver datos aquí.</h2>
