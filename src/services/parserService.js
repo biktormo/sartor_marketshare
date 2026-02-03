@@ -1,69 +1,72 @@
-import * as pdfjsLib from 'pdfjs-dist';
+import * as pdfjsLib from 'pdfjs-dist/build/pdf';
+
+// Forzamos el uso del worker desde un CDN confiable que coincida con la librería
+pdfjsLib.GlobalWorkerOptions.workerSrc = `https://cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
+
 import { db, storage } from '../firebase';
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { ref, uploadBytesResumable, getDownloadURL } from 'firebase/storage';
 
-// Usamos una versión fija y verificada del worker
-pdfjsLib.GlobalWorkerOptions.workerSrc = `https://unpkg.com/pdfjs-dist@3.11.174/build/pdf.worker.min.js`;
-
 export const processReport = async (file, onProgress) => {
+  // 1. Subida a Firebase Storage
   const storageRef = ref(storage, `reports/${Date.now()}_${file.name}`);
   const uploadTask = uploadBytesResumable(storageRef, file);
   
   return new Promise((resolve, reject) => {
     uploadTask.on('state_changed', 
-      (snap) => onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 50)),
+      (snap) => onProgress(Math.round((snap.bytesTransferred / snap.totalBytes) * 40)),
       (err) => reject(err),
       async () => {
         try {
           const fileUrl = await getDownloadURL(storageRef);
-          onProgress(60);
+          onProgress(50);
 
+          // 2. Lectura del PDF
           const arrayBuffer = await file.arrayBuffer();
-          const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+          const loadingTask = pdfjsLib.getDocument({ data: arrayBuffer });
+          const pdf = await loadingTask.promise;
           
-          let fullText = "";
+          let textoCompleto = "";
           for (let i = 1; i <= pdf.numPages; i++) {
             const page = await pdf.getPage(i);
             const content = await page.getTextContent();
-            fullText += content.items.map(item => item.str).join(" ");
+            textoCompleto += content.items.map(item => item.str).join(" ");
           }
           
-          onProgress(90);
+          onProgress(80);
 
-          // Lógica de detección y extracción básica
-          const esTractor = fullText.includes("Tractor");
-          const esCosechadora = fullText.includes("Combine");
+          // 3. Lógica de Negocio: Identificación y Agrupación
+          const esTractor = textoCompleto.toLowerCase().includes("tractor");
+          
+          // Extraemos el Market Share total de Sartor (ejemplo de búsqueda)
+          const shareMatch = textoCompleto.match(/MarketShare\s+(\d+\.?\d*)%/i);
+          const shareTotal = shareMatch ? parseFloat(shareMatch[1]) : 0;
 
-          // Aquí prepararemos el objeto para Firestore
-          const datosProcesados = {
+          // Estructura de datos según tus requisitos de potencia
+          const dataFinal = {
             nombreArchivo: file.name,
             archivoUrl: fileUrl,
-            tipo: esTractor ? "Tractores" : (esCosechadora ? "Cosechadoras" : "Otros"),
-            fechaProcesado: serverTimestamp(),
-            // Agregamos datos iniciales de Market Share total (extraídos por posición o regex)
-            marketShareGeneral: extraerShareGeneral(fullText),
-            segmentosHP: {
-              menor_100: 0, // Aquí sumaremos los datos de <50 a 100 HP
-              entre_100_180: 0, // Aquí sumaremos de 100 a 180 HP
-              mayor_180: 0 // Aquí sumaremos de 180 en adelante
-            }
+            tipo: esTractor ? "Tractores" : "Cosechadoras",
+            fechaCarga: serverTimestamp(),
+            marketShareGeneral: shareTotal,
+            // Aquí sumaremos los datos según los 3 grupos solicitados
+            analisisPotencia: {
+              menor_100hp: 0,   // Suma de <50 hasta 100 HP
+              rango_100_180hp: 0, // Suma de 100 hasta 180 HP
+              mayor_180hp: 0    // Suma de 180 HP en adelante
+            },
+            rawText: textoCompleto.substring(0, 1000) // Para auditoría
           };
 
-          const docRef = await addDoc(collection(db, "reports"), datosProcesados);
+          // 4. Guardar en Firestore
+          const docRef = await addDoc(collection(db, "reports"), dataFinal);
           onProgress(100);
-          resolve({ id: docRef.id, ...datosProcesados });
+          resolve({ id: docRef.id, ...dataFinal });
         } catch (err) {
-          console.error("Error detallado:", err);
+          console.error("Error en procesamiento:", err);
           reject(err);
         }
       }
     );
   });
 };
-
-// Función auxiliar para intentar pescar el número de Market Share
-function extraerShareGeneral(texto) {
-  const match = texto.match(/MarketShare\s+(\d+\.?\d*)%/i);
-  return match ? parseFloat(match[1]) : 0;
-}
