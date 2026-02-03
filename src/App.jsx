@@ -1,121 +1,56 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-import viteLogo from './assets/vite.svg'
-import heroImg from './assets/hero.png'
-import './App.css'
+import React, { useState } from 'react';
+import { LayoutDashboard, FileUp, Bell, Settings, BarChart3 } from 'lucide-react';
+import DataImport from './pages/DataImport';
+// Importaremos otros componentes luego
 
-function App() {
-  const [count, setCount] = useState(0)
+export default function App() {
+  const [activeTab, setActiveTab] = useState('import'); // 'dashboard', 'import', 'alerts'
 
   return (
-    <>
-      <section id="center">
-        <div className="hero">
-          <img src={heroImg} className="base" width="170" height="179" alt="" />
-          <img src={reactLogo} className="framework" alt="React logo" />
-          <img src={viteLogo} className="vite" alt="Vite logo" />
+    <div className="min-h-screen bg-[#f6f8f6] text-slate-900 font-sans">
+      {/* Top NavBar */}
+      <header className="sticky top-0 z-50 flex items-center justify-between px-10 py-3 bg-white border-b border-slate-200">
+        <div className="flex items-center gap-4">
+          <div className="bg-[#367C2B] p-2 rounded text-white font-bold italic text-sm">
+            JD
+          </div>
+          <div>
+            <h1 className="text-lg font-bold leading-tight">Sartor Analysis</h1>
+            <p className="text-[10px] text-slate-500 font-bold uppercase tracking-widest">Market Share Dashboard</p>
+          </div>
         </div>
-        <div>
-          <h1>Get started</h1>
-          <p>
-            Edit <code>src/App.jsx</code> and save to test <code>HMR</code>
-          </p>
-        </div>
-        <button
-          className="counter"
-          onClick={() => setCount((count) => count + 1)}
-        >
-          Count is {count}
-        </button>
-      </section>
 
-      <div className="ticks"></div>
+        <nav className="flex items-center gap-8">
+          <button 
+            onClick={() => setActiveTab('dashboard')}
+            className={`text-sm font-medium ${activeTab === 'dashboard' ? 'text-[#367C2B] border-b-2 border-[#367C2B]' : 'text-slate-500'}`}
+          >
+            Dashboard
+          </button>
+          <button 
+            onClick={() => setActiveTab('import')}
+            className={`text-sm font-medium ${activeTab === 'import' ? 'text-[#367C2B] border-b-2 border-[#367C2B]' : 'text-slate-500'}`}
+          >
+            Data Import
+          </button>
+        </nav>
 
-      <section id="next-steps">
-        <div id="docs">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#documentation-icon"></use>
-          </svg>
-          <h2>Documentation</h2>
-          <p>Your questions, answered</p>
-          <ul>
-            <li>
-              <a href="https://vite.dev/" target="_blank">
-                <img className="logo" src={viteLogo} alt="" />
-                Explore Vite
-              </a>
-            </li>
-            <li>
-              <a href="https://react.dev/" target="_blank">
-                <img className="button-icon" src={reactLogo} alt="" />
-                Learn more
-              </a>
-            </li>
-          </ul>
+        <div className="flex items-center gap-4">
+          <Bell className="w-5 h-5 text-slate-400 cursor-pointer" />
+          <div className="w-10 h-10 rounded-full bg-slate-200 border-2 border-[#367C2B]/20 flex items-center justify-center font-bold text-[#367C2B]">
+            DS
+          </div>
         </div>
-        <div id="social">
-          <svg className="icon" role="presentation" aria-hidden="true">
-            <use href="/icons.svg#social-icon"></use>
-          </svg>
-          <h2>Connect with us</h2>
-          <p>Join the Vite community</p>
-          <ul>
-            <li>
-              <a href="https://github.com/vitejs/vite" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#github-icon"></use>
-                </svg>
-                GitHub
-              </a>
-            </li>
-            <li>
-              <a href="https://chat.vite.dev/" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#discord-icon"></use>
-                </svg>
-                Discord
-              </a>
-            </li>
-            <li>
-              <a href="https://x.com/vite_js" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#x-icon"></use>
-                </svg>
-                X.com
-              </a>
-            </li>
-            <li>
-              <a href="https://bsky.app/profile/vite.dev" target="_blank">
-                <svg
-                  className="button-icon"
-                  role="presentation"
-                  aria-hidden="true"
-                >
-                  <use href="/icons.svg#bluesky-icon"></use>
-                </svg>
-                Bluesky
-              </a>
-            </li>
-          </ul>
-        </div>
-      </section>
+      </header>
 
-      <div className="ticks"></div>
-      <section id="spacer"></section>
-    </>
-  )
+      <main className="max-w-[1440px] mx-auto p-10">
+        {activeTab === 'import' && <DataImport />}
+        {activeTab === 'dashboard' && (
+          <div className="text-center py-20">
+            <h2 className="text-2xl font-bold text-slate-400">Selecciona un archivo en Import para ver datos aquí.</h2>
+          </div>
+        )}
+      </main>
+    </div>
+  );
 }
-
-export default App
