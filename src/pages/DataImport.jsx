@@ -1,9 +1,30 @@
 import React, { useState } from 'react';
 import { CloudUpload, FileText, CheckCircle2, AlertCircle, Loader2 } from 'lucide-react';
+import { processReport } from '../services/parserService';
 
 export default function DataImport() {
-  const [uploading, setUploading] = useState(false);
-  const [progress, setProgress] = useState(0);
+    const [uploading, setUploading] = useState(false);
+    const [progress, setProgress] = useState(0);
+    const [status, setStatus] = useState(null); // 'success', 'error'
+
+    const handleFileSelect = async (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+
+    setUploading(true);
+    setStatus(null);
+    
+    try {
+        const result = await processReport(file, (p) => setProgress(p));
+        setStatus('success');
+        console.log("Reporte procesado con éxito:", result);
+        // Aquí podrías redirigir al Dashboard o mostrar un mensaje
+    } catch (error) {
+        setStatus('error');
+        setUploading(false);
+    }
+    };
+  
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">

@@ -4,12 +4,12 @@ import { getStorage } from "firebase/storage";
 import { getAuth } from "firebase/auth";
 
 const firebaseConfig = {
-  apiKey: "TU_API_KEY",
-  authDomain: "TU_PROYECTO.firebaseapp.com",
-  projectId: "TU_PROYECTO",
-  storageBucket: "TU_PROYECTO.appspot.com",
-  messagingSenderId: "TU_ID",
-  appId: "TU_APP_ID"
+  apiKey: "AIzaSyDxdYEP68RQJc5uHmiK3AGurEuM5rFTFjI",
+  authDomain: "sartor-market-share.firebaseapp.com",
+  projectId: "sartor-market-share",
+  storageBucket: "sartor-market-share.firebasestorage.app",
+  messagingSenderId: "482271503471",
+  appId: "1:482271503471:web:81eec08209b2564c94999a"
 };
 
 const app = initializeApp(firebaseConfig);
